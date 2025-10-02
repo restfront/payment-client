@@ -2,6 +2,7 @@
 package payment
 
 import (
+	"context"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -13,9 +14,26 @@ var (
 	defaultDelaySec       = 1
 )
 
+// BankTerminal определяет методы для работы с банковским терминалом
+type BankTerminal interface {
+	GetStatus(ctx context.Context, transactionID string) (*BankTerminalResponse, error)
+	SubmitAction(ctx context.Context, action BankTransactionAction) (*BankTerminalResponse, error)
+	InitiatePayment(ctx context.Context, payment BankPayment) (*BankTerminalResponse, error)
+	TestHost(ctx context.Context) (*BankTerminalResponse, error)
+	TestPinpad(ctx context.Context) (*BankTerminalResponse, error)
+}
+
+type FiscalRegister interface {
+	OpenShift(ctx context.Context) error
+	CloseShift(ctx context.Context) error
+}
+
 type Client struct {
 	config     *Config
 	httpClient *resty.Client
+
+	bankTerminal   BankTerminal
+	fiscalRegister FiscalRegister
 }
 
 type Config struct {
@@ -27,6 +45,13 @@ type Config struct {
 		DelaySec    int
 	}
 	DebugMode bool
+}
+
+type bankTerminal struct {
+	parent *Client
+}
+type fiscalRegister struct {
+	parent *Client
 }
 
 func NewClient(config *Config) *Client {
@@ -54,13 +79,16 @@ func NewClient(config *Config) *Client {
 	httpClient.SetTimeout(timeout)
 	httpClient.SetRetryCount(maxAttemps)
 	httpClient.SetRetryWaitTime(time.Duration(delaySec) * time.Second)
-	httpClient.SetHeader("User-Agent", "RestFront/") // TODO name
+	httpClient.SetHeader("User-Agent", "RestFront/payment-client")
 
 	if config.DebugMode {
 		httpClient.SetDebug(true)
 	}
 
 	client.httpClient = httpClient
+
+	client.bankTerminal = &bankTerminal{parent: client}
+	client.fiscalRegister = &fiscalRegister{parent: client}
 
 	return client
 }

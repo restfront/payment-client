@@ -98,16 +98,3 @@ type ReportItem struct {
 	FiscalName  string  `json:"fiscalName"`
 	ServiceName string  `json:"serviceName"`
 }
-
-type BankResponse struct {
-	Status        string `json:"status"`
-	Message       string `json:"message"`
-	TransactionID string `json:"transactionId"`
-}
-
-type BankActionPayResponse struct {
-	Status        string `json:"status"`
-	TransactionID string `json:"transactionId"`
-	AuthCode      string `json:"authCode"`
-	CardNumber    string `json:"cardNumber"`
-}

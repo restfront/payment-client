@@ -62,16 +62,3 @@ type Payment struct {
 	PayGroupName string  `json:"PayGroupName"`
 	PayMethod    int     `json:"payMethod"`
 }
-
-type BankAnswerRequest struct {
-	TransactionID string  `json:"transactionId"`
-	Action        string  `json:"action"`
-	Pin           *string `json:"pin,omitempty"`
-}
-
-type BankActionPayRequest struct {
-	Amount      float64 `json:"amount"`
-	Currency    string  `json:"currency"`
-	OrderID     string  `json:"orderId"`
-	Description string  `json:"description"`
-}
