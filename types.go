@@ -21,22 +21,21 @@ const (
 )
 
 type BankTransactionAction struct {
-	TransactionID string            `json:"transactionId"`
+	TransactionID int64             `json:"transaction"`
 	Action        TransactionAction `json:"action"`
 	Pin           string            `json:"pin,omitempty"`
 }
 
 type BankPayment struct {
-	Amount      float64 `json:"amount"`
-	Currency    string  `json:"currency"`
-	OrderID     string  `json:"orderId"`
-	Description string  `json:"description"`
+	TransactionID int64   `json:"transaction"`
+	Amount        float64 `json:"sum"`
+	Currency      string  `json:"currency,omitempty"`
 }
 
 type BankTerminalResponse struct {
 	Status        TerminalOperationStatus `json:"status"`
 	Message       string                  `json:"message"`
-	TransactionID *string                 `json:"transactionId"`
+	TransactionID *int64                  `json:"transaction"`
 	AuthCode      *string                 `json:"authCode"`
 	CardNumber    *string                 `json:"cardNumber"`
 }
