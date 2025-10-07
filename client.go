@@ -110,13 +110,18 @@ func (c *Client) CheckBankHost(ctx context.Context) error {
 		return fmt.Errorf("ошибка при проверке соединения с банком: %s", resp.Message)
 	}
 
-	resp, err = c.bankTerminal.GetStatus(ctx, 0)
-	if err != nil {
-		return err
-	}
+	attempts := 5
+	delay := 1 * time.Second
 
-	if resp.Status != TerminalOperationStatusSuccess {
-		return fmt.Errorf("ошибка при проверке соединения с банком: %s", resp.Message)
+	err = retry(ctx, attempts, delay, func(ctx context.Context) (bool, error) {
+		resp, err := c.bankTerminal.GetStatus(ctx, 0)
+		if err != nil {
+			return false, err
+		}
+		return resp.Status == TerminalOperationStatusSuccess, nil
+	})
+	if err != nil {
+		return fmt.Errorf("ошибка при проверке соединения с банком: %w", err)
 	}
 
 	return nil
@@ -132,13 +137,18 @@ func (c *Client) CheckBankPinpad(ctx context.Context) error {
 		return fmt.Errorf("ошибка при проверке соединения с пинпадом: %s", resp.Message)
 	}
 
-	resp, err = c.bankTerminal.GetStatus(ctx, 0)
-	if err != nil {
-		return err
-	}
+	attempts := 5
+	delay := 1 * time.Second
 
-	if resp.Status != TerminalOperationStatusSuccess {
-		return fmt.Errorf("ошибка при проверке соединения с пинпадом: %s", resp.Message)
+	err = retry(ctx, attempts, delay, func(ctx context.Context) (bool, error) {
+		resp, err := c.bankTerminal.GetStatus(ctx, 0)
+		if err != nil {
+			return false, err
+		}
+		return resp.Status == TerminalOperationStatusSuccess, nil
+	})
+	if err != nil {
+		return fmt.Errorf("ошибка при проверке соединения с пинпадом: %w", err)
 	}
 
 	return nil
