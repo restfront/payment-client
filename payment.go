@@ -14,15 +14,15 @@ import (
 func (t *bankTerminal) GetStatus(ctx context.Context, transactionID int64) (*BankTerminalResponse, error) {
 	path := "bank/status"
 
+	var params url.Values
 	if transactionID > 0 {
 		params := url.Values{}
 		params.Add("transaction", strconv.FormatInt(transactionID, 10))
-		path = fmt.Sprintf("%s?%s", path, params.Encode())
 	}
 
 	result := &BankTerminalResponse{}
 
-	_, err := t.doRequest(ctx, http.MethodGet, path, nil, result)
+	_, err := t.doRequest(ctx, http.MethodGet, path, params, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при запросе состояния банковского терминала: %w", err)
 	}
@@ -36,7 +36,7 @@ func (t *bankTerminal) TestHost(ctx context.Context) (*BankTerminalResponse, err
 
 	result := &BankTerminalResponse{}
 
-	_, err := t.doRequest(ctx, http.MethodPost, path, nil, result)
+	_, err := t.doRequest(ctx, http.MethodPost, path, nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при проверке соединения с банком: %w", err)
 	}
@@ -50,7 +50,7 @@ func (t *bankTerminal) TestPinpad(ctx context.Context) (*BankTerminalResponse, e
 
 	result := &BankTerminalResponse{}
 
-	_, err := t.doRequest(ctx, http.MethodPost, path, nil, result)
+	_, err := t.doRequest(ctx, http.MethodPost, path, nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при проверке соединения с пинпадом: %w", err)
 	}
@@ -64,7 +64,7 @@ func (t *bankTerminal) InitiatePayment(ctx context.Context, payment BankPayment)
 
 	result := &BankTerminalResponse{}
 
-	_, err := t.doRequest(ctx, http.MethodPost, path, payment, result)
+	_, err := t.doRequest(ctx, http.MethodPost, path, nil, payment, result)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при создании платежа: %w", err)
 	}
@@ -78,7 +78,7 @@ func (t *bankTerminal) SubmitAction(ctx context.Context, action BankTransactionA
 
 	result := &BankTerminalResponse{}
 
-	_, err := t.doRequest(ctx, http.MethodPost, path, action, result)
+	_, err := t.doRequest(ctx, http.MethodPost, path, nil, action, result)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при подтверждении действия: %w", err)
 	}
@@ -91,6 +91,7 @@ func (t *bankTerminal) doRequest(
 	ctx context.Context,
 	method string,
 	path string,
+	queryParams url.Values,
 	body any,
 	result any,
 ) (*resty.Response, error) {
@@ -105,6 +106,10 @@ func (t *bankTerminal) doRequest(
 		SetContext(ctx).
 		SetResult(result).
 		SetError(result)
+
+	if len(queryParams) > 0 {
+		req.SetQueryParamsFromValues(queryParams)
+	}
 
 	// заголовок и тело запроса
 	if body != nil {
