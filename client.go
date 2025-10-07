@@ -105,10 +105,9 @@ func (c *Client) CheckBankHost(ctx context.Context) error {
 		return fmt.Errorf("ошибка при проверке соединения с банком: %s", resp.Message)
 	}
 
-	attempts := 5
 	delay := 1 * time.Second
 
-	err = retry(ctx, attempts, delay, func(ctx context.Context) (bool, error) {
+	err = retry(ctx, delay, func(ctx context.Context) (bool, error) {
 		resp, err := c.bankTerminal.GetStatus(ctx, 0)
 		if err != nil {
 			return false, err
@@ -132,10 +131,9 @@ func (c *Client) CheckBankPinpad(ctx context.Context) error {
 		return fmt.Errorf("ошибка при проверке соединения с пинпадом: %s", resp.Message)
 	}
 
-	attempts := 5
 	delay := 1 * time.Second
 
-	err = retry(ctx, attempts, delay, func(ctx context.Context) (bool, error) {
+	err = retry(ctx, delay, func(ctx context.Context) (bool, error) {
 		resp, err := c.bankTerminal.GetStatus(ctx, 0)
 		if err != nil {
 			return false, err
@@ -153,10 +151,9 @@ func (c *Client) ProcessBankPayment(ctx context.Context, payment BankPayment) (*
 	bankTerminal := c.bankTerminal
 
 	// ожидаем готовность терминала
-	attempts := 5
 	delay := 1 * time.Second
 
-	err := retry(ctx, attempts, delay, func(ctx context.Context) (bool, error) {
+	err := retry(ctx, delay, func(ctx context.Context) (bool, error) {
 		resp, err := bankTerminal.GetStatus(ctx, 0)
 		if err != nil {
 			return false, err
@@ -188,9 +185,8 @@ func (c *Client) ProcessBankPayment(ctx context.Context, payment BankPayment) (*
 	}
 
 	// ожидаем завершения оплаты
-	attempts = 15
 	delay = 1 * time.Second
-	err = retry(ctx, attempts, delay, func(ctx context.Context) (bool, error) {
+	err = retry(ctx, delay, func(ctx context.Context) (bool, error) {
 		resp, err := bankTerminal.GetStatus(ctx, payment.TransactionID)
 		if err != nil {
 			return false, err
@@ -198,25 +194,36 @@ func (c *Client) ProcessBankPayment(ctx context.Context, payment BankPayment) (*
 
 		switch resp.Status {
 		case TerminalOperationStatusSuccess:
-			// при успешном статусе завершаем цикл
+			// при успешном статусе завершаем
 			return true, nil
 		case TerminalOperationStatusFeedback:
-			// при обратном вызове повторяем цикл
+			// при обратном вызове повторяем запрос статуса
 			return false, nil
 		case TerminalOperationStatusCancel:
-			// при отмене платежа завершаем цикл
-			return true, fmt.Errorf("отмена платежа: %s", resp.Message)
+			// при отмене платежа завершаем с ошибкой
+			return true, fmt.Errorf("%w: %s", ErrPaymentCanceled, resp.Message)
 		case TerminalOperationStatusError:
-			// при ошибке завершаем цикл
-			return true, fmt.Errorf("ошибка при осуществлении платежа: %s", resp.Message)
+			// при ошибке завершаем с ошибкой
+			return true, fmt.Errorf("%w: %s", ErrPaymentFailed, resp.Message)
 		case TerminalOperationStatusBusy:
-			// при занятости повторяем цикл
+			// при занятости повторяем запрос статуса
 			return false, nil
 		case TerminalOperationStatusProcess:
-			// при ожидании завершения повторяем цикл
+			// при выполняющейся операции повторяем запрос статуса
 			return false, nil
+		case TerminalOperationStatusIdle:
+			// терминал в простое, но транзакция была запущена
+			// это неожиданный/ошибочный статус для текущей транзакции
+			return true, fmt.Errorf("%w: %s", ErrTerminalIdleUnexpected, resp.Message)
+		case TerminalOperationStatusNextNumber:
+			// при требовании следующего номера операции завершаем с ошибкой
+			return true, fmt.Errorf("%w: %s", ErrTerminalNextNumber, resp.Message)
+		case TerminalOperationStatusUnknown:
+			// при неизвестном результате завершаем с ошибкой
+			return true, fmt.Errorf("%w: %s", ErrPaymentUnknownStatus, resp.Message)
+
 		default:
-			// при других статусах повторяем цикл
+			// при неизвестном статусе повторяем запрос статуса до превышения таймаута
 			return false, nil
 		}
 	})
@@ -227,13 +234,8 @@ func (c *Client) ProcessBankPayment(ctx context.Context, payment BankPayment) (*
 	return resp, nil
 }
 
-func retry(
-	ctx context.Context,
-	attempts int,
-	delay time.Duration,
-	fn func(context.Context) (bool, error),
-) error {
-	for i := 1; i <= attempts; i++ {
+func retry(ctx context.Context, delay time.Duration, fn func(context.Context) (bool, error)) error {
+	for {
 		ok, err := fn(ctx)
 		if err != nil {
 			return err
@@ -242,14 +244,10 @@ func retry(
 			return nil
 		}
 
-		if i < attempts {
-			select {
-			case <-time.After(delay * time.Duration(i)):
-			case <-ctx.Done():
-				return ctx.Err()
-			}
+		select {
+		case <-time.After(delay):
+		case <-ctx.Done():
+			return fmt.Errorf("прервано по таймауту: %w", ctx.Err())
 		}
 	}
-
-	return fmt.Errorf("достигнуто максимальное число попыток (%d)", attempts)
 }

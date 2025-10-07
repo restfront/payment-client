@@ -44,4 +44,11 @@ var (
 	ErrIncorrectURL           = errors.New("некорректный URL")
 	ErrConnectionTimeout      = errors.New("таймаут соединения/запроса")
 	ErrIncorrectRequestMethod = errors.New("неподдерживаемый метод запроса")
+	// ошибки, связанные с результатом платежа:
+	ErrPaymentCanceled      = errors.New("платеж отменен пользователем/терминалом")
+	ErrPaymentFailed        = errors.New("ошибка при осуществлении платежа")
+	ErrPaymentUnknownStatus = errors.New("результат оплаты неизвестен")
+	// ошибки, связанные с неожиданным состоянием терминала:
+	ErrTerminalIdleUnexpected = errors.New("оплата завершена с неожиданным статусом")
+	ErrTerminalNextNumber     = errors.New("терминал требует следующий номер операции")
 )
