@@ -12,7 +12,7 @@ const (
 	TerminalOperationStatusCancel     TerminalOperationStatus = "Cancel"     // операция отменена
 	TerminalOperationStatusError      TerminalOperationStatus = "Error"      // ошибка при выполнении операции
 	TerminalOperationStatusBusy       TerminalOperationStatus = "Occupied"   // терминал занят выполнением служебной или иной банковской операции
-	TerminalOperationStatusIdle       TerminalOperationStatus = "Idle"       // терминал находится в режиме простоя
+	TerminalOperationStatusIdle       TerminalOperationStatus = "NoProc"     // терминал находится в режиме простоя
 	TerminalOperationStatusNextNumber TerminalOperationStatus = "NextNumber" // требование следующего номера операции
 	TerminalOperationStatusUnknown    TerminalOperationStatus = "Unknown"    // результат операции неизвестен
 
