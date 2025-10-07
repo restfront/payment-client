@@ -96,11 +96,6 @@ func NewClient(config *Config) *Client {
 }
 
 func (c *Client) CheckBankHost(ctx context.Context) error {
-	// в режиме разработки не проверяем доступность соединения с банком
-	if c.config.DevMode {
-		return nil
-	}
-
 	resp, err := c.bankTerminal.TestHost(ctx)
 	if err != nil {
 		return err
@@ -172,16 +167,18 @@ func (c *Client) ProcessBankPayment(ctx context.Context, payment BankPayment) (*
 		return nil, fmt.Errorf("ошибка при ожидании готовности терминала: %w", err)
 	}
 
-	// проверяем доступность соединения с банком
-	err = c.CheckBankHost(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка при осуществлении платежа: %w", err)
-	}
+	if c.config.DevMode {
+		// проверяем доступность соединения с банком
+		err = c.CheckBankHost(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("ошибка при осуществлении платежа: %w", err)
+		}
 
-	// проверяем доступность соединения с пинпадом
-	err = c.CheckBankPinpad(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка при осуществлении платежа: %w", err)
+		// проверяем доступность соединения с пинпадом
+		err = c.CheckBankPinpad(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("ошибка при осуществлении платежа: %w", err)
+		}
 	}
 
 	// инициируем процес оплаты
