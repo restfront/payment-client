@@ -4,6 +4,7 @@ package payment
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -35,6 +36,8 @@ type Client struct {
 
 	bankTerminal   BankTerminal
 	fiscalRegister FiscalRegister
+
+	logger logger
 }
 
 type Config struct {
@@ -56,9 +59,28 @@ type fiscalRegister struct {
 	parent *Client
 }
 
-func NewClient(config *Config) *Client {
+type logger interface {
+	Debugf(format string, v ...any)
+	Infof(format string, v ...any)
+	Warnf(format string, v ...any)
+	Errorf(format string, v ...any)
+}
+
+type noOpLogger struct{}
+
+func (l *noOpLogger) Debugf(format string, v ...any) {}
+func (l *noOpLogger) Infof(format string, v ...any)  {}
+func (l *noOpLogger) Warnf(format string, v ...any)  {}
+func (l *noOpLogger) Errorf(format string, v ...any) {}
+
+func NewClient(config *Config, logger logger) *Client {
+	if isNilInterface(logger) {
+		logger = &noOpLogger{}
+	}
+
 	client := &Client{
 		config: config,
+		logger: logger,
 	}
 
 	httpClient := resty.New()
@@ -85,6 +107,7 @@ func NewClient(config *Config) *Client {
 
 	if config.DebugMode {
 		httpClient.SetDebug(true)
+		httpClient.SetLogger(logger)
 	}
 
 	client.httpClient = httpClient
@@ -247,7 +270,17 @@ func retry(ctx context.Context, delay time.Duration, fn func(context.Context) (b
 		select {
 		case <-time.After(delay):
 		case <-ctx.Done():
-			return fmt.Errorf("прервано по таймауту: %w", ctx.Err())
+			return fmt.Errorf("%w: %v", ErrConnectionTimeout, ctx.Err())
 		}
 	}
+}
+
+func isNilInterface(i interface{}) bool {
+	if i == nil {
+		return true
+	}
+
+	v := reflect.ValueOf(i)
+
+	return v.Kind() == reflect.Ptr && v.IsNil()
 }
