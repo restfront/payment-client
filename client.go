@@ -4,6 +4,8 @@ package payment
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/url"
 	"reflect"
 	"time"
 
@@ -170,6 +172,7 @@ func (c *Client) CheckBankPinpad(ctx context.Context) error {
 	return nil
 }
 
+// ProcessBankPayment инициирует платеж и ожидает его завершения, запрашивая статус терминала
 func (c *Client) ProcessBankPayment(ctx context.Context, payment BankPayment) (*BankTerminalResponse, error) {
 	bankTerminal := c.bankTerminal
 
@@ -257,6 +260,71 @@ func (c *Client) ProcessBankPayment(ctx context.Context, payment BankPayment) (*
 	return resp, nil
 }
 
+// doRequest выполняет запрос к банковскому терминалу используя указанный метод, путь и тело запроса
+// для результата успешных и ошибочных запросов используется общий result.
+func (c *Client) doRequest(
+	ctx context.Context,
+	method string,
+	path string,
+	queryParams url.Values,
+	body any,
+	result any,
+) (*resty.Response, error) {
+	// формирование URL
+	endpoint, err := url.JoinPath(c.config.BaseURL, path)
+	if err != nil {
+		return nil, ErrIncorrectURL
+	}
+
+	// инициализация запроса
+	req := c.httpClient.R().
+		SetContext(ctx).
+		SetResult(result).
+		SetError(result)
+
+	if len(queryParams) > 0 {
+		req.SetQueryParamsFromValues(queryParams)
+	}
+
+	// заголовок и тело запроса
+	if body != nil {
+		req.SetHeader("Content-Type", "application/json").
+			SetBody(body)
+	}
+
+	// выполнение запроса
+	response := &resty.Response{}
+
+	switch method {
+	case http.MethodGet:
+		response, err = req.Get(endpoint)
+	case http.MethodPost:
+		response, err = req.Post(endpoint)
+	default:
+		return nil, fmt.Errorf("%w: %s", ErrIncorrectRequestMethod, method)
+	}
+
+	// обработка ошибок
+	if err != nil {
+		if isTimeout(err) {
+			return nil, ErrConnectionTimeout
+		}
+		return nil, fmt.Errorf("ошибка при выполнении запроса: %w", err)
+	}
+
+	if response.IsError() {
+		// Пытаемся получить детали из декодированного тела ответа
+		if resp, ok := result.(*BankTerminalResponse); ok && resp != nil {
+			return nil, fmt.Errorf("ошибка при выполнении запроса (status_code: %d, status: %s, message: %s)",
+				response.StatusCode(), resp.Status, resp.Message)
+		}
+		// Иначе возвращаем только HTTP-статус
+		return nil, fmt.Errorf("ошибка при выполнении запроса (status_code: %d)", response.StatusCode())
+	}
+
+	return response, nil
+}
+
 func retry(ctx context.Context, delay time.Duration, fn func(context.Context) (bool, error)) error {
 	for {
 		ok, err := fn(ctx)
@@ -270,7 +338,7 @@ func retry(ctx context.Context, delay time.Duration, fn func(context.Context) (b
 		select {
 		case <-time.After(delay):
 		case <-ctx.Done():
-			return fmt.Errorf("%w: %v", ErrConnectionTimeout, ctx.Err())
+			return fmt.Errorf("%w: %w", ErrConnectionTimeout, ctx.Err())
 		}
 	}
 }
