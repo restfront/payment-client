@@ -186,7 +186,8 @@ func (c *Client) ProcessBankPayment(ctx context.Context, payment BankPayment) (*
 		if err != nil {
 			return false, err
 		}
-		return resp.Status == TerminalOperationStatusIdle, nil
+
+		return (resp.Status == TerminalOperationStatusIdle || resp.Status == TerminalOperationStatusNextNumber), nil
 	})
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при ожидании готовности терминала: %w", err)
