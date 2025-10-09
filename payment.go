@@ -109,7 +109,7 @@ func (f *fiscalRegister) InitiatePayment(ctx context.Context, payment FiscalRegi
 		return nil, fmt.Errorf("ошибка при инициации платежа по фискальному регистратору: %w", err)
 	}
 
-	return nil, nil
+	return result, nil
 }
 
 func (f *fiscalRegister) OpenShift(ctx context.Context) error {
