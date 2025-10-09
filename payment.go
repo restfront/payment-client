@@ -83,6 +83,35 @@ func (t *bankTerminal) SubmitAction(ctx context.Context, action BankTransactionA
 	return result, nil
 }
 
+func (f *fiscalRegister) GetStatus(ctx context.Context) (*FiscalRegisterStatus, error) {
+	path := "register"
+
+	params := url.Values{}
+	params.Add("username", "api") // legacy-параметр, но без него не работает
+
+	result := &FiscalRegisterStatus{}
+
+	_, err := f.parent.doRequest(ctx, http.MethodGet, path, params, nil, result)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при запросе состояния фискального регистратора: %w", err)
+	}
+
+	return result, nil
+}
+
+func (f *fiscalRegister) InitiatePayment(ctx context.Context, payment FiscalRegisterPayment) (*FiscalRegisterPaymentResponse, error) {
+	path := "register/sell"
+
+	result := &FiscalRegisterPaymentResponse{}
+
+	_, err := f.parent.doRequest(ctx, http.MethodPost, path, nil, payment.ToRequest(), result)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при инициации платежа по фискальному регистратору: %w", err)
+	}
+
+	return nil, nil
+}
+
 func (f *fiscalRegister) OpenShift(ctx context.Context) error {
 
 	return nil

@@ -28,8 +28,10 @@ type BankTerminal interface {
 }
 
 type FiscalRegister interface {
+	GetStatus(ctx context.Context) (*FiscalRegisterStatus, error)
 	OpenShift(ctx context.Context) error
 	CloseShift(ctx context.Context) error
+	InitiatePayment(ctx context.Context, payment FiscalRegisterPayment) (*FiscalRegisterPaymentResponse, error)
 }
 
 type Client struct {
@@ -260,6 +262,32 @@ func (c *Client) ProcessBankPayment(ctx context.Context, payment BankPayment) (*
 	return resp, nil
 }
 
+func (c *Client) GetFiscalRegisterStatus(ctx context.Context) (*FiscalRegisterStatus, error) {
+	return c.fiscalRegister.GetStatus(ctx)
+}
+
+func (c *Client) ProcessFiscalRegisterPayment(ctx context.Context, payment FiscalRegisterPayment) (*FiscalRegisterPaymentResponse, error) {
+	status, err := c.GetFiscalRegisterStatus(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrPaymentFailed, err)
+	}
+
+	if !status.ShiftOpened {
+		return nil, ErrFiscalRegisterShiftNotOpened
+	}
+
+	if status.ShiftLimitExceeded {
+		return nil, ErrFiscalRegisterShiftLimitExceeded
+	}
+
+	response, err := c.fiscalRegister.InitiatePayment(ctx, payment)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrPaymentFailed, err)
+	}
+
+	return response, nil
+}
+
 // doRequest выполняет запрос к банковскому терминалу используя указанный метод, путь и тело запроса
 // для результата успешных и ошибочных запросов используется общий result.
 func (c *Client) doRequest(
@@ -314,10 +342,18 @@ func (c *Client) doRequest(
 
 	if response.IsError() {
 		// Пытаемся получить детали из декодированного тела ответа
-		if resp, ok := result.(*BankTerminalResponse); ok && resp != nil {
-			return nil, fmt.Errorf("ошибка при выполнении запроса (status_code: %d, status: %s, message: %s)",
-				response.StatusCode(), resp.Status, resp.Message)
+		switch resp := result.(type) {
+		case *BankTerminalResponse:
+			if resp != nil {
+				return nil, fmt.Errorf("ошибка при выполнении запроса (status_code: %d, status: %s, message: %s)",
+					response.StatusCode(), resp.Status, resp.Message)
+			}
+		case *FiscalRegisterStatus:
+			if resp != nil {
+				return nil, fmt.Errorf("ошибка при выполнении запроса (status_code: %d)", response.StatusCode())
+			}
 		}
+
 		// Иначе возвращаем только HTTP-статус
 		return nil, fmt.Errorf("ошибка при выполнении запроса (status_code: %d)", response.StatusCode())
 	}
