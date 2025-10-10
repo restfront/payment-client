@@ -175,48 +175,64 @@ func (c *Client) CheckBankPinpad(ctx context.Context) error {
 }
 
 // ProcessBankPayment инициирует платеж и ожидает его завершения, запрашивая статус терминала
+// При ошибках всегда возвращает ответ терминала, как минимум статус и id транзакции
 func (c *Client) ProcessBankPayment(ctx context.Context, payment BankPayment) (*BankTerminalResponse, error) {
+	var err error
+
 	bankTerminal := c.bankTerminal
 
 	// ожидаем готовность терминала
 	delay := 1 * time.Second
 
-	err := retry(ctx, delay, func(ctx context.Context) (bool, error) {
-		resp, err := bankTerminal.GetStatus(ctx, 0)
+	transactionID := payment.TransactionID
+	resp := &BankTerminalResponse{
+		TransactionID: &transactionID,
+	}
+
+	err = retry(ctx, delay, func(ctx context.Context) (bool, error) {
+		resp, err = bankTerminal.GetStatus(ctx, 0)
 		if err != nil {
 			return false, err
+		}
+
+		if resp.Status == TerminalOperationStatusNextNumber {
+			transactionID++
 		}
 
 		return (resp.Status == TerminalOperationStatusIdle || resp.Status == TerminalOperationStatusNextNumber), nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("ошибка при ожидании готовности терминала: %w", err)
+		return resp, fmt.Errorf("ошибка при ожидании готовности терминала: %w", err)
 	}
 
 	if c.config.DevMode {
 		// проверяем доступность соединения с банком
 		err = c.CheckBankHost(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("ошибка при осуществлении платежа: %w", err)
+			return resp, fmt.Errorf("ошибка при осуществлении платежа: %w", err)
 		}
 
 		// проверяем доступность соединения с пинпадом
 		err = c.CheckBankPinpad(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("ошибка при осуществлении платежа: %w", err)
+			return resp, fmt.Errorf("ошибка при осуществлении платежа: %w", err)
 		}
 	}
 
 	// инициируем процес оплаты
-	resp, err := bankTerminal.InitiatePayment(ctx, payment)
+	if payment.TransactionID < transactionID {
+		payment.TransactionID = transactionID
+	}
+
+	resp, err = bankTerminal.InitiatePayment(ctx, payment)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка при осуществлении платежа: %w", err)
+		return resp, fmt.Errorf("ошибка при осуществлении платежа: %w", err)
 	}
 
 	// ожидаем завершения оплаты
 	delay = 1 * time.Second
 	err = retry(ctx, delay, func(ctx context.Context) (bool, error) {
-		resp, err := bankTerminal.GetStatus(ctx, payment.TransactionID)
+		resp, err = bankTerminal.GetStatus(ctx, transactionID)
 		if err != nil {
 			return false, err
 		}
@@ -246,6 +262,7 @@ func (c *Client) ProcessBankPayment(ctx context.Context, payment BankPayment) (*
 			return true, fmt.Errorf("%w: %s", ErrTerminalIdleUnexpected, resp.Message)
 		case TerminalOperationStatusNextNumber:
 			// при требовании следующего номера операции завершаем с ошибкой
+			transactionID++
 			return true, fmt.Errorf("%w: %s", ErrTerminalNextNumber, resp.Message)
 		case TerminalOperationStatusUnknown:
 			// при неизвестном результате завершаем с ошибкой
@@ -257,7 +274,7 @@ func (c *Client) ProcessBankPayment(ctx context.Context, payment BankPayment) (*
 		}
 	})
 	if err != nil {
-		return nil, fmt.Errorf("ошибка при ожидании завершения платежа: %w", err)
+		return resp, fmt.Errorf("ошибка при ожидании завершения платежа: %w", err)
 	}
 
 	return resp, nil
