@@ -131,6 +131,22 @@ type fiscalRegisterPaymentTypeRequest struct {
 	Amount float64 `json:"sumNcu"`
 }
 
+type fiscalRegisterOpenShiftRequest struct {
+	Username string `json:"username"`
+}
+
+type fiscalRegisterCloseShiftRequest struct {
+	Username string `json:"username"`
+}
+
+type fiscalRegisterPrintXReportRequest struct {
+	Username string `json:"username"`
+}
+
+type fiscalRegisterPrintZReportRequest struct {
+	Username string `json:"username"`
+}
+
 func (p *FiscalRegisterPayment) ToRequest() *fiscalRegisterPaymentRequest {
 	request := &fiscalRegisterPaymentRequest{
 		ID:          p.ID,

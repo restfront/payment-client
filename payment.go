@@ -113,11 +113,57 @@ func (f *fiscalRegister) InitiatePayment(ctx context.Context, payment FiscalRegi
 }
 
 func (f *fiscalRegister) OpenShift(ctx context.Context) error {
+	path := "register/sessionStart"
+
+	request := &fiscalRegisterOpenShiftRequest{}
+	request.Username = "api" // legacy-параметр, но без него не работает
+
+	_, err := f.parent.doRequest(ctx, http.MethodPost, path, nil, request, nil)
+	if err != nil {
+		return fmt.Errorf("ошибка при открытии смены на фискальном регистраторе: %w", err)
+	}
 
 	return nil
 }
 
 func (f *fiscalRegister) CloseShift(ctx context.Context) error {
+	path := "register/sessionEnd"
+
+	request := &fiscalRegisterCloseShiftRequest{}
+	request.Username = "api" // legacy-параметр, но без него не работает
+
+	_, err := f.parent.doRequest(ctx, http.MethodPost, path, nil, request, nil)
+	if err != nil {
+		return fmt.Errorf("ошибка при закрытии смены на фискальном регистраторе: %w", err)
+	}
+
+	return nil
+}
+
+func (f *fiscalRegister) PrintXReport(ctx context.Context) error {
+	path := "register/reportX"
+
+	request := &fiscalRegisterPrintXReportRequest{}
+	request.Username = "api" // legacy-параметр, но без него не работает
+
+	_, err := f.parent.doRequest(ctx, http.MethodPost, path, nil, request, nil)
+	if err != nil {
+		return fmt.Errorf("ошибка при печати X-отчета на фискальном регистраторе: %w", err)
+	}
+
+	return nil
+}
+
+func (f *fiscalRegister) PrintZReport(ctx context.Context) error {
+	path := "register/reportZ"
+
+	request := &fiscalRegisterPrintZReportRequest{}
+	request.Username = "api" // legacy-параметр, но без него не работает
+
+	_, err := f.parent.doRequest(ctx, http.MethodPost, path, nil, request, nil)
+	if err != nil {
+		return fmt.Errorf("ошибка при печати Z-отчета на фискальном регистраторе: %w", err)
+	}
 
 	return nil
 }

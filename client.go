@@ -32,6 +32,8 @@ type FiscalRegister interface {
 	OpenShift(ctx context.Context) error
 	CloseShift(ctx context.Context) error
 	InitiatePayment(ctx context.Context, payment FiscalRegisterPayment) (*FiscalRegisterPaymentResponse, error)
+	PrintXReport(ctx context.Context) error
+	PrintZReport(ctx context.Context) error
 }
 
 type Client struct {
@@ -306,6 +308,22 @@ func (c *Client) ProcessFiscalRegisterPayment(ctx context.Context, payment Fisca
 	return response, nil
 }
 
+func (c *Client) OpenFiscalRegisterShift(ctx context.Context) error {
+	return c.fiscalRegister.OpenShift(ctx)
+}
+
+func (c *Client) CloseFiscalRegisterShift(ctx context.Context) error {
+	return c.fiscalRegister.CloseShift(ctx)
+}
+
+func (c *Client) PrintFiscalRegisterXReport(ctx context.Context) error {
+	return c.fiscalRegister.PrintXReport(ctx)
+}
+
+func (c *Client) PrintFiscalRegisterZReport(ctx context.Context) error {
+	return c.fiscalRegister.PrintZReport(ctx)
+}
+
 // doRequest выполняет запрос к банковскому терминалу используя указанный метод, путь и тело запроса
 // для результата успешных и ошибочных запросов используется общий result.
 func (c *Client) doRequest(
@@ -324,9 +342,12 @@ func (c *Client) doRequest(
 
 	// инициализация запроса
 	req := c.httpClient.R().
-		SetContext(ctx).
-		SetResult(result).
-		SetError(result)
+		SetContext(ctx)
+
+	if result != nil {
+		req.SetResult(result).
+			SetError(result)
+	}
 
 	if len(queryParams) > 0 {
 		req.SetQueryParamsFromValues(queryParams)
@@ -397,7 +418,7 @@ func retry(ctx context.Context, delay time.Duration, fn func(context.Context) (b
 	}
 }
 
-func isNilInterface(i interface{}) bool {
+func isNilInterface(i any) bool {
 	if i == nil {
 		return true
 	}
