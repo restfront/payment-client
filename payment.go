@@ -83,6 +83,19 @@ func (t *bankTerminal) SubmitAction(ctx context.Context, action BankTransactionA
 	return result, nil
 }
 
+func (t *bankTerminal) Reconcile(ctx context.Context) (*BankTerminalResponse, error) {
+	path := "/bank/dayreport"
+
+	result := &BankTerminalResponse{}
+
+	_, err := t.parent.doRequest(ctx, http.MethodPost, path, nil, nil, result)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при подтверждении действия: %w", err)
+	}
+
+	return result, nil
+}
+
 func (f *fiscalRegister) GetStatus(ctx context.Context) (*FiscalRegisterStatus, error) {
 	path := "register"
 

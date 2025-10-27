@@ -23,6 +23,7 @@ type BankTerminal interface {
 	GetStatus(ctx context.Context, transactionID int64) (*BankTerminalResponse, error)
 	SubmitAction(ctx context.Context, action BankTransactionAction) (*BankTerminalResponse, error)
 	InitiatePayment(ctx context.Context, payment BankPayment) (*BankTerminalResponse, error)
+	Reconcile(ctx context.Context) (*BankTerminalResponse, error)
 	TestHost(ctx context.Context) (*BankTerminalResponse, error)
 	TestPinpad(ctx context.Context) (*BankTerminalResponse, error)
 }
@@ -280,6 +281,10 @@ func (c *Client) ProcessBankPayment(ctx context.Context, payment BankPayment) (*
 	}
 
 	return resp, nil
+}
+
+func (c *Client) BankReconcile(ctx context.Context) (*BankTerminalResponse, error) {
+	return c.bankTerminal.Reconcile(ctx)
 }
 
 func (c *Client) GetFiscalRegisterStatus(ctx context.Context) (*FiscalRegisterStatus, error) {
