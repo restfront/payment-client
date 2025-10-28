@@ -64,6 +64,10 @@ type BankTerminalResponse struct {
 	CardNumber    *string                 `json:"cardNumber"`
 }
 
+type BankTransaction struct {
+	ID int64 `json:"transaction"`
+}
+
 type FiscalRegisterStatus struct {
 	ShiftOpened        bool `json:"shiftOpen"`  // признак открытия смены
 	ShiftLimitExceeded bool `json:"shiftEnded"` // признак превышения 24 часов с момента открытия смены

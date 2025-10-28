@@ -83,12 +83,16 @@ func (t *bankTerminal) SubmitAction(ctx context.Context, action BankTransactionA
 	return result, nil
 }
 
-func (t *bankTerminal) Reconcile(ctx context.Context) (*BankTerminalResponse, error) {
+func (t *bankTerminal) Reconcile(ctx context.Context, transactionID int64) (*BankTerminalResponse, error) {
 	path := "/bank/dayreport"
+
+	body := BankTransaction{
+		ID: transactionID,
+	}
 
 	result := &BankTerminalResponse{}
 
-	_, err := t.parent.doRequest(ctx, http.MethodPost, path, nil, nil, result)
+	_, err := t.parent.doRequest(ctx, http.MethodPost, path, nil, body, result)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при подтверждении действия: %w", err)
 	}
