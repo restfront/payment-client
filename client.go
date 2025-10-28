@@ -284,6 +284,33 @@ func (c *Client) ProcessBankPayment(ctx context.Context, payment BankPayment) (*
 }
 
 func (c *Client) BankReconcile(ctx context.Context, transactionID int64) (*BankTerminalResponse, error) {
+	var err error
+
+	bankTerminal := c.bankTerminal
+
+	// ожидаем готовность терминала
+	delay := 1 * time.Second
+
+	resp := &BankTerminalResponse{
+		TransactionID: &transactionID,
+	}
+
+	err = retry(ctx, delay, func(ctx context.Context) (bool, error) {
+		resp, err = bankTerminal.GetStatus(ctx, 0)
+		if err != nil {
+			return false, err
+		}
+
+		if resp.Status == TerminalOperationStatusNextNumber {
+			transactionID++
+		}
+
+		return (resp.Status == TerminalOperationStatusIdle || resp.Status == TerminalOperationStatusNextNumber), nil
+	})
+	if err != nil {
+		return resp, fmt.Errorf("ошибка при ожидании готовности терминала: %w", err)
+	}
+
 	return c.bankTerminal.Reconcile(ctx, transactionID)
 }
 
