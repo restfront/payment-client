@@ -84,6 +84,40 @@ func (t *bankTerminal) SubmitAction(ctx context.Context, action BankTransactionA
 }
 
 func (t *bankTerminal) Reconcile(ctx context.Context, transactionID int64) (*BankTerminalResponse, error) {
+	path := "/bank/settlement"
+
+	body := BankTransaction{
+		ID: transactionID,
+	}
+
+	result := &BankTerminalResponse{}
+
+	_, err := t.parent.doRequest(ctx, http.MethodPost, path, nil, body, result)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при запросе сверки итогов: %w", err)
+	}
+
+	return result, nil
+}
+
+func (t *bankTerminal) SummaryReport(ctx context.Context, transactionID int64) (*BankTerminalResponse, error) {
+	path := "/bank/dayreportshort"
+
+	body := BankTransaction{
+		ID: transactionID,
+	}
+
+	result := &BankTerminalResponse{}
+
+	_, err := t.parent.doRequest(ctx, http.MethodPost, path, nil, body, result)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при запросе краткого отчета: %w", err)
+	}
+
+	return result, nil
+}
+
+func (t *bankTerminal) DetailedReport(ctx context.Context, transactionID int64) (*BankTerminalResponse, error) {
 	path := "/bank/dayreport"
 
 	body := BankTransaction{
@@ -94,7 +128,7 @@ func (t *bankTerminal) Reconcile(ctx context.Context, transactionID int64) (*Ban
 
 	_, err := t.parent.doRequest(ctx, http.MethodPost, path, nil, body, result)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка при подтверждении действия: %w", err)
+		return nil, fmt.Errorf("ошибка при запросе детального отчета: %w", err)
 	}
 
 	return result, nil

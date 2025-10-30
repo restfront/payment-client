@@ -24,6 +24,8 @@ type BankTerminal interface {
 	SubmitAction(ctx context.Context, action BankTransactionAction) (*BankTerminalResponse, error)
 	InitiatePayment(ctx context.Context, payment BankPayment) (*BankTerminalResponse, error)
 	Reconcile(ctx context.Context, transactionID int64) (*BankTerminalResponse, error)
+	DetailedReport(ctx context.Context, transactionID int64) (*BankTerminalResponse, error)
+	SummaryReport(ctx context.Context, transactionID int64) (*BankTerminalResponse, error)
 	TestHost(ctx context.Context) (*BankTerminalResponse, error)
 	TestPinpad(ctx context.Context) (*BankTerminalResponse, error)
 }
@@ -312,6 +314,68 @@ func (c *Client) BankReconcile(ctx context.Context, transactionID int64) (*BankT
 	}
 
 	return c.bankTerminal.Reconcile(ctx, transactionID)
+}
+
+func (c *Client) BankDetailedReport(ctx context.Context, transactionID int64) (*BankTerminalResponse, error) {
+	var err error
+
+	bankTerminal := c.bankTerminal
+
+	// ожидаем готовность терминала
+	delay := 1 * time.Second
+
+	resp := &BankTerminalResponse{
+		TransactionID: &transactionID,
+	}
+
+	err = retry(ctx, delay, func(ctx context.Context) (bool, error) {
+		resp, err = bankTerminal.GetStatus(ctx, 0)
+		if err != nil {
+			return false, err
+		}
+
+		if resp.Status == TerminalOperationStatusNextNumber {
+			transactionID++
+		}
+
+		return (resp.Status == TerminalOperationStatusIdle || resp.Status == TerminalOperationStatusNextNumber), nil
+	})
+	if err != nil {
+		return resp, fmt.Errorf("ошибка при ожидании готовности терминала: %w", err)
+	}
+
+	return c.bankTerminal.DetailedReport(ctx, transactionID)
+}
+
+func (c *Client) BankSummaryReport(ctx context.Context, transactionID int64) (*BankTerminalResponse, error) {
+	var err error
+
+	bankTerminal := c.bankTerminal
+
+	// ожидаем готовность терминала
+	delay := 1 * time.Second
+
+	resp := &BankTerminalResponse{
+		TransactionID: &transactionID,
+	}
+
+	err = retry(ctx, delay, func(ctx context.Context) (bool, error) {
+		resp, err = bankTerminal.GetStatus(ctx, 0)
+		if err != nil {
+			return false, err
+		}
+
+		if resp.Status == TerminalOperationStatusNextNumber {
+			transactionID++
+		}
+
+		return (resp.Status == TerminalOperationStatusIdle || resp.Status == TerminalOperationStatusNextNumber), nil
+	})
+	if err != nil {
+		return resp, fmt.Errorf("ошибка при ожидании готовности терминала: %w", err)
+	}
+
+	return c.bankTerminal.SummaryReport(ctx, transactionID)
 }
 
 func (c *Client) GetFiscalRegisterStatus(ctx context.Context) (*FiscalRegisterStatus, error) {
