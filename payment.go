@@ -150,6 +150,23 @@ func (f *fiscalRegister) GetStatus(ctx context.Context) (*FiscalRegisterStatus, 
 	return result, nil
 }
 
+// GetShiftNumber возвращает номер текущей смены
+func (f *fiscalRegister) GetShiftNumber(ctx context.Context) (int64, error) {
+	path := "register/shiftnumber"
+
+	params := url.Values{}
+	params.Add("username", "api") // legacy-параметр, но без него не работает
+
+	result := &FiscalRegisterShiftNumber{}
+
+	_, err := f.parent.doRequest(ctx, http.MethodGet, path, params, nil, result)
+	if err != nil {
+		return 0, fmt.Errorf("ошибка при запросе номера смены: %w", err)
+	}
+
+	return result.ShiftNumber, nil
+}
+
 func (f *fiscalRegister) InitiatePayment(ctx context.Context, payment FiscalRegisterPayment) (*FiscalRegisterPaymentResponse, error) {
 	path := "register/sell"
 

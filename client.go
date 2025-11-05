@@ -32,6 +32,7 @@ type BankTerminal interface {
 
 type FiscalRegister interface {
 	GetStatus(ctx context.Context) (*FiscalRegisterStatus, error)
+	GetShiftNumber(ctx context.Context) (int64, error)
 	OpenShift(ctx context.Context) error
 	CloseShift(ctx context.Context) error
 	InitiatePayment(ctx context.Context, payment FiscalRegisterPayment) (*FiscalRegisterPaymentResponse, error)
@@ -380,6 +381,11 @@ func (c *Client) BankSummaryReport(ctx context.Context, transactionID int64) (*B
 
 func (c *Client) GetFiscalRegisterStatus(ctx context.Context) (*FiscalRegisterStatus, error) {
 	return c.fiscalRegister.GetStatus(ctx)
+}
+
+// GetFiscalRegisterShiftNumber возвращает номер текущей смены. Если смена не открыта, возвращает 0
+func (c *Client) GetFiscalRegisterShiftNumber(ctx context.Context) (int64, error) {
+	return c.fiscalRegister.GetShiftNumber(ctx)
 }
 
 func (c *Client) ProcessFiscalRegisterPayment(ctx context.Context, payment FiscalRegisterPayment) (*FiscalRegisterPaymentResponse, error) {

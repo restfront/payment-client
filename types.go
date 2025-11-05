@@ -73,6 +73,10 @@ type FiscalRegisterStatus struct {
 	ShiftLimitExceeded bool `json:"shiftEnded"` // признак превышения 24 часов с момента открытия смены
 }
 
+type FiscalRegisterShiftNumber struct {
+	ShiftNumber int64 `json:"shiftnumber"` // номер смены
+}
+
 type FiscalRegisterPayment struct {
 	ID           int64
 	Number       string
