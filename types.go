@@ -69,8 +69,9 @@ type BankTransaction struct {
 }
 
 type FiscalRegisterStatus struct {
-	ShiftOpened        bool `json:"shiftOpen"`  // признак открытия смены
-	ShiftLimitExceeded bool `json:"shiftEnded"` // признак превышения 24 часов с момента открытия смены
+	ShiftOpened        bool   `json:"shiftOpen"`  // признак открытия смены
+	ShiftLimitExceeded bool   `json:"shiftEnded"` // признак превышения 24 часов с момента открытия смены
+	ErrorText          string `json:"error"`
 }
 
 type FiscalRegisterShiftNumber struct {

@@ -139,12 +139,17 @@ func (f *fiscalRegister) GetStatus(ctx context.Context) (*FiscalRegisterStatus, 
 
 	params := url.Values{}
 	params.Add("username", "api") // legacy-параметр, но без него не работает
+	params.Add("withReport", "true")
 
 	result := &FiscalRegisterStatus{}
 
 	_, err := f.parent.doRequest(ctx, http.MethodGet, path, params, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при запросе состояния фискального регистратора: %w", err)
+	}
+
+	if result.ErrorText != "" {
+		return nil, fmt.Errorf("ошибка при запросе состояния фискального регистратора: %s", result.ErrorText)
 	}
 
 	return result, nil
