@@ -83,11 +83,13 @@ func (t *bankTerminal) SubmitAction(ctx context.Context, action BankTransactionA
 	return result, nil
 }
 
-func (t *bankTerminal) Reconcile(ctx context.Context, transactionID int64) (*BankTerminalResponse, error) {
+// Reconcile выполняет сверку итогов
+func (t *bankTerminal) Reconcile(ctx context.Context, transactionID int64, printerName string) (*BankTerminalResponse, error) {
 	path := "/bank/settlement"
 
 	body := BankTransaction{
-		ID: transactionID,
+		ID:          transactionID,
+		PrinterName: printerName,
 	}
 
 	result := &BankTerminalResponse{}
@@ -100,11 +102,13 @@ func (t *bankTerminal) Reconcile(ctx context.Context, transactionID int64) (*Ban
 	return result, nil
 }
 
-func (t *bankTerminal) SummaryReport(ctx context.Context, transactionID int64) (*BankTerminalResponse, error) {
+// SummaryReport выполняет запрос краткого отчета
+func (t *bankTerminal) SummaryReport(ctx context.Context, transactionID int64, printerName string) (*BankTerminalResponse, error) {
 	path := "/bank/dayreportshort"
 
 	body := BankTransaction{
-		ID: transactionID,
+		ID:          transactionID,
+		PrinterName: printerName,
 	}
 
 	result := &BankTerminalResponse{}
@@ -117,11 +121,13 @@ func (t *bankTerminal) SummaryReport(ctx context.Context, transactionID int64) (
 	return result, nil
 }
 
-func (t *bankTerminal) DetailedReport(ctx context.Context, transactionID int64) (*BankTerminalResponse, error) {
+// DetailedReport выполняет запрос детального отчета
+func (t *bankTerminal) DetailedReport(ctx context.Context, transactionID int64, printerName string) (*BankTerminalResponse, error) {
 	path := "/bank/dayreport"
 
 	body := BankTransaction{
-		ID: transactionID,
+		ID:          transactionID,
+		PrinterName: printerName,
 	}
 
 	result := &BankTerminalResponse{}
@@ -213,11 +219,13 @@ func (f *fiscalRegister) CloseShift(ctx context.Context) error {
 	return nil
 }
 
-func (f *fiscalRegister) PrintXReport(ctx context.Context) error {
+func (f *fiscalRegister) PrintXReport(ctx context.Context, printerName string) error {
 	path := "register/reportX"
 
-	request := &fiscalRegisterPrintXReportRequest{}
-	request.Username = "api" // legacy-параметр, но без него не работает
+	request := &fiscalRegisterPrintXReportRequest{
+		Username:    "api", // legacy-параметр, но без него не работает
+		PrinterName: printerName,
+	}
 
 	_, err := f.parent.doRequest(ctx, http.MethodPost, path, nil, request, nil)
 	if err != nil {
@@ -227,11 +235,13 @@ func (f *fiscalRegister) PrintXReport(ctx context.Context) error {
 	return nil
 }
 
-func (f *fiscalRegister) PrintZReport(ctx context.Context) error {
+func (f *fiscalRegister) PrintZReport(ctx context.Context, printerName string) error {
 	path := "register/reportZ"
 
-	request := &fiscalRegisterPrintZReportRequest{}
-	request.Username = "api" // legacy-параметр, но без него не работает
+	request := &fiscalRegisterPrintZReportRequest{
+		Username:    "api", // legacy-параметр, но без него не работает
+		PrinterName: printerName,
+	}
 
 	_, err := f.parent.doRequest(ctx, http.MethodPost, path, nil, request, nil)
 	if err != nil {

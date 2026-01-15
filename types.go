@@ -65,7 +65,8 @@ type BankTerminalResponse struct {
 }
 
 type BankTransaction struct {
-	ID int64 `json:"transaction"`
+	ID          int64  `json:"transaction"`
+	PrinterName string `json:"printername,omitempty"`
 }
 
 type FiscalRegisterStatus struct {
@@ -149,11 +150,13 @@ type fiscalRegisterCloseShiftRequest struct {
 }
 
 type fiscalRegisterPrintXReportRequest struct {
-	Username string `json:"username"`
+	Username    string `json:"username"`
+	PrinterName string `json:"printername,omitempty"`
 }
 
 type fiscalRegisterPrintZReportRequest struct {
-	Username string `json:"username"`
+	Username    string `json:"username"`
+	PrinterName string `json:"printername,omitempty"`
 }
 
 func (p *FiscalRegisterPayment) ToRequest() *fiscalRegisterPaymentRequest {
