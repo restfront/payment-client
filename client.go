@@ -23,9 +23,9 @@ type BankTerminal interface {
 	GetStatus(ctx context.Context, transactionID int64) (*BankTerminalResponse, error)
 	SubmitAction(ctx context.Context, action BankTransactionAction) (*BankTerminalResponse, error)
 	InitiatePayment(ctx context.Context, payment BankPayment) (*BankTerminalResponse, error)
-	Reconcile(ctx context.Context, transactionID int64) (*BankTerminalResponse, error)
-	DetailedReport(ctx context.Context, transactionID int64) (*BankTerminalResponse, error)
-	SummaryReport(ctx context.Context, transactionID int64) (*BankTerminalResponse, error)
+	Reconcile(ctx context.Context, transactionID int64, printerName string) (*BankTerminalResponse, error)
+	DetailedReport(ctx context.Context, transactionID int64, printerName string) (*BankTerminalResponse, error)
+	SummaryReport(ctx context.Context, transactionID int64, printerName string) (*BankTerminalResponse, error)
 	TestHost(ctx context.Context) (*BankTerminalResponse, error)
 	TestPinpad(ctx context.Context) (*BankTerminalResponse, error)
 }
@@ -36,8 +36,8 @@ type FiscalRegister interface {
 	OpenShift(ctx context.Context) error
 	CloseShift(ctx context.Context) error
 	InitiatePayment(ctx context.Context, payment FiscalRegisterPayment) (*FiscalRegisterPaymentResponse, error)
-	PrintXReport(ctx context.Context) error
-	PrintZReport(ctx context.Context) error
+	PrintXReport(ctx context.Context, printerName string) error
+	PrintZReport(ctx context.Context, printerName string) error
 }
 
 type Client struct {
@@ -286,7 +286,7 @@ func (c *Client) ProcessBankPayment(ctx context.Context, payment BankPayment) (*
 	return resp, nil
 }
 
-func (c *Client) BankReconcile(ctx context.Context, transactionID int64) (*BankTerminalResponse, error) {
+func (c *Client) BankReconcile(ctx context.Context, transactionID int64, printerName string) (*BankTerminalResponse, error) {
 	var err error
 
 	bankTerminal := c.bankTerminal
@@ -314,10 +314,10 @@ func (c *Client) BankReconcile(ctx context.Context, transactionID int64) (*BankT
 		return resp, fmt.Errorf("ошибка при ожидании готовности терминала: %w", err)
 	}
 
-	return c.bankTerminal.Reconcile(ctx, transactionID)
+	return c.bankTerminal.Reconcile(ctx, transactionID, printerName)
 }
 
-func (c *Client) BankDetailedReport(ctx context.Context, transactionID int64) (*BankTerminalResponse, error) {
+func (c *Client) BankDetailedReport(ctx context.Context, transactionID int64, printerName string) (*BankTerminalResponse, error) {
 	var err error
 
 	bankTerminal := c.bankTerminal
@@ -345,10 +345,10 @@ func (c *Client) BankDetailedReport(ctx context.Context, transactionID int64) (*
 		return resp, fmt.Errorf("ошибка при ожидании готовности терминала: %w", err)
 	}
 
-	return c.bankTerminal.DetailedReport(ctx, transactionID)
+	return c.bankTerminal.DetailedReport(ctx, transactionID, printerName)
 }
 
-func (c *Client) BankSummaryReport(ctx context.Context, transactionID int64) (*BankTerminalResponse, error) {
+func (c *Client) BankSummaryReport(ctx context.Context, transactionID int64, printerName string) (*BankTerminalResponse, error) {
 	var err error
 
 	bankTerminal := c.bankTerminal
@@ -376,7 +376,7 @@ func (c *Client) BankSummaryReport(ctx context.Context, transactionID int64) (*B
 		return resp, fmt.Errorf("ошибка при ожидании готовности терминала: %w", err)
 	}
 
-	return c.bankTerminal.SummaryReport(ctx, transactionID)
+	return c.bankTerminal.SummaryReport(ctx, transactionID, printerName)
 }
 
 func (c *Client) GetFiscalRegisterStatus(ctx context.Context) (*FiscalRegisterStatus, error) {
@@ -418,12 +418,12 @@ func (c *Client) CloseFiscalRegisterShift(ctx context.Context) error {
 	return c.fiscalRegister.CloseShift(ctx)
 }
 
-func (c *Client) PrintFiscalRegisterXReport(ctx context.Context) error {
-	return c.fiscalRegister.PrintXReport(ctx)
+func (c *Client) PrintFiscalRegisterXReport(ctx context.Context, printerName string) error {
+	return c.fiscalRegister.PrintXReport(ctx, printerName)
 }
 
-func (c *Client) PrintFiscalRegisterZReport(ctx context.Context) error {
-	return c.fiscalRegister.PrintZReport(ctx)
+func (c *Client) PrintFiscalRegisterZReport(ctx context.Context, printerName string) error {
+	return c.fiscalRegister.PrintZReport(ctx, printerName)
 }
 
 // doRequest выполняет запрос к банковскому терминалу используя указанный метод, путь и тело запроса
