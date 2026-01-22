@@ -129,6 +129,8 @@ func NewClient(config *Config, logger logger) *Client {
 }
 
 func (c *Client) CheckBankHost(ctx context.Context) error {
+	c.logger.Debugf("Проверка соединения с банковским хостом...")
+
 	resp, err := c.bankTerminal.TestHost(ctx)
 	if err != nil {
 		return err
@@ -155,6 +157,8 @@ func (c *Client) CheckBankHost(ctx context.Context) error {
 }
 
 func (c *Client) CheckBankPinpad(ctx context.Context) error {
+	c.logger.Debugf("Проверка соединения с терминалом/пинпадом...")
+
 	resp, err := c.bankTerminal.TestPinpad(ctx)
 	if err != nil {
 		return err
@@ -194,6 +198,8 @@ func (c *Client) ProcessBankPayment(ctx context.Context, payment BankPayment) (*
 	resp := &BankTerminalResponse{
 		TransactionID: &transactionID,
 	}
+
+	c.logger.Debugf("Запуск оплаты по карте...")
 
 	err = retry(ctx, delay, func(ctx context.Context) (bool, error) {
 		resp, err = bankTerminal.GetStatus(ctx, 0)
@@ -298,6 +304,8 @@ func (c *Client) BankReconcile(ctx context.Context, transactionID int64, printer
 		TransactionID: &transactionID,
 	}
 
+	c.logger.Debugf("Сверка итогов по банку...")
+
 	err = retry(ctx, delay, func(ctx context.Context) (bool, error) {
 		resp, err = bankTerminal.GetStatus(ctx, 0)
 		if err != nil {
@@ -328,6 +336,8 @@ func (c *Client) BankDetailedReport(ctx context.Context, transactionID int64, pr
 	resp := &BankTerminalResponse{
 		TransactionID: &transactionID,
 	}
+
+	c.logger.Debugf("Запрос детального отчета по банку...")
 
 	err = retry(ctx, delay, func(ctx context.Context) (bool, error) {
 		resp, err = bankTerminal.GetStatus(ctx, 0)
@@ -360,6 +370,8 @@ func (c *Client) BankSummaryReport(ctx context.Context, transactionID int64, pri
 		TransactionID: &transactionID,
 	}
 
+	c.logger.Debugf("Запрос краткого отчета по банку...")
+
 	err = retry(ctx, delay, func(ctx context.Context) (bool, error) {
 		resp, err = bankTerminal.GetStatus(ctx, 0)
 		if err != nil {
@@ -380,15 +392,21 @@ func (c *Client) BankSummaryReport(ctx context.Context, transactionID int64, pri
 }
 
 func (c *Client) GetFiscalRegisterStatus(ctx context.Context) (*FiscalRegisterStatus, error) {
+	c.logger.Debugf("Проверка состояния кассы...")
+
 	return c.fiscalRegister.GetStatus(ctx)
 }
 
 // GetFiscalRegisterShiftNumber возвращает номер текущей смены. Если смена не открыта, возвращает 0
 func (c *Client) GetFiscalRegisterShiftNumber(ctx context.Context) (int64, error) {
+	c.logger.Debugf("Запрос номера кассовой смены...")
+
 	return c.fiscalRegister.GetShiftNumber(ctx)
 }
 
 func (c *Client) ProcessFiscalRegisterPayment(ctx context.Context, payment FiscalRegisterPayment) (*FiscalRegisterPaymentResponse, error) {
+	c.logger.Debugf("Регистрация продажи по кассе...")
+
 	status, err := c.GetFiscalRegisterStatus(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrPaymentFailed, err)
@@ -411,18 +429,26 @@ func (c *Client) ProcessFiscalRegisterPayment(ctx context.Context, payment Fisca
 }
 
 func (c *Client) OpenFiscalRegisterShift(ctx context.Context) error {
+	c.logger.Debugf("Открытие кассовой смены...")
+
 	return c.fiscalRegister.OpenShift(ctx)
 }
 
 func (c *Client) CloseFiscalRegisterShift(ctx context.Context) error {
+	c.logger.Debugf("Закрытие кассовой смены...")
+
 	return c.fiscalRegister.CloseShift(ctx)
 }
 
 func (c *Client) PrintFiscalRegisterXReport(ctx context.Context, printerName string) error {
+	c.logger.Debugf("Печать X-отчета...")
+
 	return c.fiscalRegister.PrintXReport(ctx, printerName)
 }
 
 func (c *Client) PrintFiscalRegisterZReport(ctx context.Context, printerName string) error {
+	c.logger.Debugf("Закрытие кассовой смены и печать Z-отчета...")
+
 	return c.fiscalRegister.PrintZReport(ctx, printerName)
 }
 
