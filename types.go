@@ -159,6 +159,13 @@ type fiscalRegisterPrintZReportRequest struct {
 	PrinterName string `json:"printername,omitempty"`
 }
 
+type fiscalRegisterPrintReceipt struct {
+	Username      string `json:"userName"`
+	PrinterName   string `json:"printername,omitempty"`
+	ReceiptNumber int64  `json:"systemNumber"`
+	ShiftNumber   int64  `json:"shiftNumber"`
+}
+
 func (p *FiscalRegisterPayment) ToRequest() *fiscalRegisterPaymentRequest {
 	request := &fiscalRegisterPaymentRequest{
 		ID:          p.ID,

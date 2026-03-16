@@ -38,6 +38,7 @@ type FiscalRegister interface {
 	InitiatePayment(ctx context.Context, payment FiscalRegisterPayment) (*FiscalRegisterPaymentResponse, error)
 	PrintXReport(ctx context.Context, printerName string) error
 	PrintZReport(ctx context.Context, printerName string) error
+	ReprintReceipt(ctx context.Context, printerName string, receiptNumber, shiftNumber int64) error
 }
 
 type Client struct {

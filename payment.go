@@ -250,3 +250,21 @@ func (f *fiscalRegister) PrintZReport(ctx context.Context, printerName string) e
 
 	return nil
 }
+
+func (f *fiscalRegister) ReprintReceipt(ctx context.Context, printerName string, receiptNumber, shiftNumber int64) error {
+	path := "register/printcopycheck"
+
+	request := &fiscalRegisterPrintReceipt{
+		Username:      "api", // legacy-параметр, но без него не работает
+		PrinterName:   printerName,
+		ReceiptNumber: receiptNumber,
+		ShiftNumber:   shiftNumber,
+	}
+
+	_, err := f.parent.doRequest(ctx, http.MethodPost, path, nil, request, nil)
+	if err != nil {
+		return fmt.Errorf("ошибка при печати копии чека на фискальном регистраторе: %w", err)
+	}
+
+	return nil
+}
