@@ -453,6 +453,12 @@ func (c *Client) PrintFiscalRegisterZReport(ctx context.Context, printerName str
 	return c.fiscalRegister.PrintZReport(ctx, printerName)
 }
 
+func (c *Client) ReprintReceipt(ctx context.Context, printerName string, receiptNumber, shiftNumber int64) error {
+	c.logger.Debugf("Печать копии чека...")
+
+	return c.fiscalRegister.ReprintReceipt(ctx, printerName, receiptNumber, shiftNumber)
+}
+
 // doRequest выполняет запрос к банковскому терминалу используя указанный метод, путь и тело запроса
 // для результата успешных и ошибочных запросов используется общий result.
 func (c *Client) doRequest(
