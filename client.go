@@ -453,7 +453,7 @@ func (c *Client) PrintFiscalRegisterZReport(ctx context.Context, printerName str
 	return c.fiscalRegister.PrintZReport(ctx, printerName)
 }
 
-func (c *Client) ReprintReceipt(ctx context.Context, printerName string, receiptNumber, shiftNumber int64) error {
+func (c *Client) ReprintFiscalRegisterReceipt(ctx context.Context, printerName string, receiptNumber, shiftNumber int64) error {
 	c.logger.Debugf("Печать копии чека...")
 
 	return c.fiscalRegister.ReprintReceipt(ctx, printerName, receiptNumber, shiftNumber)
