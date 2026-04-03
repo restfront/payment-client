@@ -52,10 +52,11 @@ type Client struct {
 }
 
 type Config struct {
-	BaseURL           string
-	Username          string
-	RequestTimeoutSec int
-	RetryPolicy       struct {
+	BaseURL                 string
+	Username                string
+	BankTerminalOperatorPin string
+	RequestTimeoutSec       int
+	RetryPolicy             struct {
 		MaxAttempts int
 		DelaySec    int
 	}
@@ -79,10 +80,10 @@ type logger interface {
 
 type noOpLogger struct{}
 
-func (l *noOpLogger) Debugf(format string, v ...any) {}
-func (l *noOpLogger) Infof(format string, v ...any)  {}
-func (l *noOpLogger) Warnf(format string, v ...any)  {}
-func (l *noOpLogger) Errorf(format string, v ...any) {}
+func (l *noOpLogger) Debugf(_ string, _ ...any) {}
+func (l *noOpLogger) Infof(_ string, _ ...any)  {}
+func (l *noOpLogger) Warnf(_ string, _ ...any)  {}
+func (l *noOpLogger) Errorf(_ string, _ ...any) {}
 
 func NewClient(config *Config, logger logger) *Client {
 	if isNilInterface(logger) {
@@ -356,7 +357,59 @@ func (c *Client) BankDetailedReport(ctx context.Context, transactionID int64, pr
 		return resp, fmt.Errorf("ошибка при ожидании готовности терминала: %w", err)
 	}
 
-	return c.bankTerminal.DetailedReport(ctx, transactionID, printerName)
+	resp, err = c.bankTerminal.DetailedReport(ctx, transactionID, printerName)
+	if err != nil {
+		return resp, fmt.Errorf("ошибка при запросе детального отчета: %w", err)
+	}
+
+	delay = 1 * time.Second
+	err = retry(ctx, delay, func(ctx context.Context) (bool, error) {
+		resp, err = bankTerminal.GetStatus(ctx, transactionID)
+		if err != nil {
+			return false, err
+		}
+
+		switch resp.Status {
+		case TerminalOperationStatusSuccess:
+			return true, nil
+		case TerminalOperationStatusFeedback:
+			return true, nil
+		case TerminalOperationStatusCancel:
+			return true, fmt.Errorf("%w: %s", ErrOperationCanceled, resp.Message)
+		case TerminalOperationStatusError:
+			return true, fmt.Errorf("%w: %s", ErrOperationFailed, resp.Message)
+		case TerminalOperationStatusBusy:
+			return false, nil
+		case TerminalOperationStatusProcess:
+			return false, nil
+		case TerminalOperationStatusIdle:
+			return true, fmt.Errorf("%w: %s", ErrTerminalIdleUnexpected, resp.Message)
+		case TerminalOperationStatusNextNumber:
+			return true, fmt.Errorf("%w: %s", ErrTerminalNextNumber, resp.Message)
+		case TerminalOperationStatusUnknown:
+			return true, fmt.Errorf("%w: %s", ErrOperationUnknownStatus, resp.Message)
+
+		default:
+			// при неизвестном статусе повторяем запрос статуса до превышения таймаута
+			return false, nil
+		}
+	})
+	if err != nil {
+		return resp, fmt.Errorf("ошибка при запросе детального отчета: %w", err)
+	}
+
+	// если терминал ожидает подтверждения
+	if resp.Status == TerminalOperationStatusFeedback {
+		action := BankTransactionAction{
+			TransactionID: transactionID,
+			Action:        TransactionActionConfirm,
+			Pin:           c.config.BankTerminalOperatorPin,
+		}
+
+		return c.bankTerminal.SubmitAction(ctx, action)
+	}
+
+	return resp, nil
 }
 
 func (c *Client) BankSummaryReport(ctx context.Context, transactionID int64, printerName string) (*BankTerminalResponse, error) {

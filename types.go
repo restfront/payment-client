@@ -36,6 +36,10 @@ var (
 	ErrPaymentCanceled      = errors.New("платеж отменен пользователем/терминалом")
 	ErrPaymentFailed        = errors.New("ошибка при осуществлении платежа")
 	ErrPaymentUnknownStatus = errors.New("результат оплаты неизвестен")
+	// ошибки, связанные с результатом операции:
+	ErrOperationCanceled      = errors.New("операция отменена пользователем/терминалом")
+	ErrOperationFailed        = errors.New("ошибка при осуществлении операции")
+	ErrOperationUnknownStatus = errors.New("результат операции неизвестен")
 	// ошибки, связанные с неожиданным состоянием терминала:
 	ErrTerminalIdleUnexpected = errors.New("оплата завершена с неожиданным статусом")
 	ErrTerminalNextNumber     = errors.New("терминал требует следующий номер операции")
