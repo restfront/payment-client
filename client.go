@@ -21,7 +21,7 @@ var (
 // BankTerminal определяет методы для работы с банковским терминалом
 type BankTerminal interface {
 	GetStatus(ctx context.Context, transactionID int64) (*BankTerminalResponse, error)
-	SubmitAction(ctx context.Context, action BankTransactionAction) (*BankTerminalResponse, error)
+	SubmitAction(ctx context.Context) (*BankTerminalResponse, error)
 	InitiatePayment(ctx context.Context, payment BankPayment) (*BankTerminalResponse, error)
 	Reconcile(ctx context.Context, transactionID int64, printerName string) (*BankTerminalResponse, error)
 	DetailedReport(ctx context.Context, transactionID int64, printerName string) (*BankTerminalResponse, error)
@@ -400,13 +400,7 @@ func (c *Client) BankDetailedReport(ctx context.Context, transactionID int64, pr
 
 	// если терминал ожидает подтверждения
 	if resp.Status == TerminalOperationStatusFeedback {
-		action := BankTransactionAction{
-			TransactionID: transactionID,
-			Action:        TransactionActionConfirm,
-			Pin:           c.config.BankTerminalOperatorPin,
-		}
-
-		return c.bankTerminal.SubmitAction(ctx, action)
+		return c.bankTerminal.SubmitAction(ctx)
 	}
 
 	return resp, nil

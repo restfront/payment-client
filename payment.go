@@ -70,12 +70,16 @@ func (t *bankTerminal) InitiatePayment(ctx context.Context, payment BankPayment)
 }
 
 // SubmitAction подтверждает действие
-func (t *bankTerminal) SubmitAction(ctx context.Context, action BankTransactionAction) (*BankTerminalResponse, error) {
+func (t *bankTerminal) SubmitAction(ctx context.Context) (*BankTerminalResponse, error) {
 	path := "bank/answer"
+
+	request := BankTerminalAuth{
+		OperatorPIN: t.parent.config.BankTerminalOperatorPin,
+	}
 
 	result := &BankTerminalResponse{}
 
-	_, err := t.parent.doRequest(ctx, http.MethodPost, path, nil, action, result)
+	_, err := t.parent.doRequest(ctx, http.MethodPost, path, nil, request.ToPayload(), result)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при подтверждении действия: %w", err)
 	}

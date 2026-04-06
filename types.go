@@ -18,9 +18,6 @@ const (
 	TerminalOperationStatusNextNumber TerminalOperationStatus = "NextNumber" // требование следующего номера операции
 	TerminalOperationStatusUnknown    TerminalOperationStatus = "Unknown"    // результат операции неизвестен
 
-	TransactionActionConfirm TransactionAction = "confirm"
-	TransactionActionCancel  TransactionAction = "cancel"
-
 	ReceiptTypeSell ReceiptType = "sell"
 
 	PaymentTypeCash   PaymentType = "Cash"
@@ -48,10 +45,15 @@ var (
 	ErrFiscalRegisterShiftLimitExceeded = errors.New("превышена максимальная продолжительность смены")
 )
 
-type BankTransactionAction struct {
-	TransactionID int64             `json:"transaction"`
-	Action        TransactionAction `json:"action"`
-	Pin           string            `json:"pin,omitempty"`
+type BankTerminalAuth struct {
+	OperatorPIN string
+}
+
+func (a BankTerminalAuth) ToPayload() map[string]string {
+	return map[string]string{
+		"key":   "enter",
+		"value": a.OperatorPIN,
+	}
 }
 
 type BankPayment struct {
